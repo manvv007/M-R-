@@ -113,7 +113,7 @@ export default function LandingPage() {
     { key: 'SIGNAL_VIOLATION' },
     { key: 'LANE_OBSTRUCTION' },
   ].map((k) => ({ name: INCIDENT_TYPES[k.key as keyof typeof INCIDENT_TYPES] || k.key }))
-  monitor.push({ name: 'Recurring Congestion' })
+  monitor.push({ name: 'Other' })
 
   const why = [
     { title: 'AI-assisted detection',  desc: 'Signal-aware lane logic + vehicle / plate analysis, not just raw counting.', icon: 'brain' },

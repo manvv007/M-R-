@@ -150,9 +150,10 @@ export function DemoRibbon({ text = 'DEMO MODE — SYNTHETIC DATA' }: { text?: s
   )
 }
 
-export function Disclaimer({ children, tone = 'info' }: {
+export function Disclaimer({ children, tone = 'info', className }: {
   children: ReactNode
   tone?: 'info' | 'ai' | 'sim'
+  className?: string
 }) {
   const palette = {
     info: 'bg-accent-blueSoft text-navy-800 ring-navy-100',
@@ -163,6 +164,7 @@ export function Disclaimer({ children, tone = 'info' }: {
     <div className={cn(
       'flex gap-3 rounded-xl px-4 py-3 text-xs ring-1',
       palette,
+      className,
     )}>
       <svg className="mt-0.5 shrink-0 text-current opacity-70" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
         <circle cx="12" cy="12" r="9" />

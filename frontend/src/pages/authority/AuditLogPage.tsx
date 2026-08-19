@@ -107,7 +107,7 @@ function fallback() {
     action,
     user_id: uid,
     incident_id: incId || null,
-    intervention_id: action.startsWith('UPDATE') ? 2 : null,
+    intervention_id: typeof action === 'string' && action.startsWith('UPDATE') ? 2 : null,
     old_value: old_v, new_value: new_v,
     ip_address: `10.${10 + (i % 10)}.${i}.${i + 1}`,
     created_at: new Date(base - i * 3_600_000 * (1 + i)).toISOString(),

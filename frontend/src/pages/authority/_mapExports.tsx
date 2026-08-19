@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom'
 // react-leaflet expects window.L to exist globally at component time in some bundlers.
 // Re-export leaflet + react-leaflet typesafe for vite build.
 import leaflet from 'leaflet'
-import ReactLeaflet from 'react-leaflet'
+import * as ReactLeaflet from 'react-leaflet'
 
 // Attach heatmap if missing — plugin is optional; we expose a fallback no-op layer.
-function HeatmapFallback(props: any) { return null }
+function HeatmapFallback(_props: any) { return null }
 
 function ensureHeat() {
   const L: any = (globalThis as any).L || leaflet

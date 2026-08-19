@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { cn } from '../utils/format'
+import { cn } from '../../utils/format'
 
 export function StatusBadge({
   status,

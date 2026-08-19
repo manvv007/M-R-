@@ -27,7 +27,6 @@ export const STATUS_LABELS: Record<string, string> = {
   CLOSED: 'Closed',
   ACTIVE: 'Active',
   SUGGESTED: 'Suggested',
-  UNDER_REVIEW: 'Under Review',
   APPROVED: 'Approved',
   IMPLEMENTED: 'Implemented',
 }
