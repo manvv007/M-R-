@@ -7,7 +7,7 @@ import os
 from .config import settings
 from .database import init_db_schema, SessionLocal
 from .seed_data import seed_demo_data
-from .routers import auth, dashboard, incidents, reports, ai, analytics, operations
+from .routers import auth, dashboard, incidents, reports, ai, analytics, operations, detection
 
 
 @asynccontextmanager
@@ -77,3 +77,4 @@ app.include_router(reports.router)
 app.include_router(ai.router)
 app.include_router(analytics.router)
 app.include_router(operations.router)
+app.include_router(detection.router)

@@ -2,8 +2,16 @@ node_modules/
 dist/
 build/
 venv/
+.venv/
+yolo_env/
 .env
 __pycache__/
 *.pyc
 .DS_Store
 *.log
+*.mp4
+*.pt
+*.db
+snapshots/
+backend/uploads/detection/
+

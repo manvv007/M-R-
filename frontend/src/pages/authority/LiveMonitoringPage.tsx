@@ -38,7 +38,7 @@ export default function LiveMonitoringPage() {
   const [junctions, setJunctions] = useState<any[] | null>(null)
   const [tick, setTick] = useState(0)
   const [playing, setPlaying] = useState(true)
-  const [frame, setFrame] = useState<SimFrame | null>(null)
+  const [frame, setFrame] = useState<SimFrame | null>(() => localSim(1, 0))
   const [logs, setLogs] = useState<any[]>([])
   const timerRef = useRef<any>(null)
 
@@ -133,22 +133,16 @@ export default function LiveMonitoringPage() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 rounded-lg bg-ink-50 px-3 py-1.5 ring-1 ring-ink-100">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink-500">Signal</span>
-                  <div className="flex items-center gap-1">
-                    <span className="h-3 w-3 rounded-full" style={{
-                      background: frame?.signal_state === 'RED' ? '#EF4444' : '#475569',
-                      boxShadow: frame?.signal_state === 'RED' ? '0 0 8px #ef4444aa' : undefined,
-                    }} />
-                    <span className="h-3 w-3 rounded-full" style={{
-                      background: frame?.signal_state === 'YELLOW' ? '#FACC15' : '#475569',
-                    }} />
-                    <span className="h-3 w-3 rounded-full" style={{
-                      background: frame?.signal_state === 'GREEN' ? '#22C55E' : '#475569',
-                      boxShadow: frame?.signal_state === 'GREEN' ? '0 0 8px #22c55eaa' : undefined,
-                    }} />
+                <div className="flex items-center gap-2 rounded-lg bg-slate-900 text-white px-3 py-1.5 ring-1 ring-emerald-500/30">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
+                    <span className="text-[11px] font-bold text-red-400">RED (STRAIGHT)</span>
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-ink-900">{frame?.signal_state || '…'}</span>
+                  <span className="text-white/30">|</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
+                    <span className="text-[11px] font-bold text-emerald-400">← ALWAYS GREEN (LEFT)</span>
+                  </div>
                 </div>
                 <span className="text-xs font-mono text-ink-500 tabular-nums">T {String(tick).padStart(3, '0')}/119</span>
               </div>
@@ -158,14 +152,14 @@ export default function LiveMonitoringPage() {
 
             <div className="grid grid-cols-2 divide-x divide-ink-100 border-t border-ink-100 md:grid-cols-4">
               {[
-                ['SIGNAL', frame?.signal_state || '—', signalColor],
-                ['LEFT-TURN LANE', frame ? `${frame.lanes[0]?.occupancy.toFixed(0) || 0}% OCCUPIED` : '—', '#B9770E'],
-                ['BLOCKAGE', frame?.blockage_detected ? 'DETECTED' : 'CLEAR', frame?.blockage_detected ? '#B42318' : '#067647'],
-                ['DURATION', frame && frame.blockage_detected ? `${frame.blockage_duration} SEC` : '—', '#182646'],
+                ['MAIN SIGNAL', 'RED (STOP)', '#EF4444'],
+                ['LEFT-TURN SIGNAL', '← ALWAYS GREEN', '#10B981'],
+                ['LEFT-TURN LANE', (frame?.lanes && frame.lanes[0] && frame.lanes[0].occupancy != null) ? `${Number(frame.lanes[0].occupancy).toFixed(0)}% OCCUPIED` : '—', '#B9770E'],
+                ['LANE BLOCKAGE', frame?.blockage_detected ? `DETECTED (${frame.blockage_duration}s)` : 'CLEAR', frame?.blockage_detected ? '#B42318' : '#067647'],
               ].map(([k, v, c]) => (
                 <div key={k as string} className="px-4 py-4">
                   <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-500">{k}</div>
-                  <div className="mt-1 text-lg font-extrabold tracking-tight" style={{ color: c as string }}>{v}</div>
+                  <div className="mt-1 text-base font-extrabold tracking-tight flex items-center gap-1" style={{ color: c as string }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -286,23 +280,25 @@ export default function LiveMonitoringPage() {
               <span className="font-semibold text-accent-red"> STRAIGHT vehicles in LEFT lane = blockage</span>.
             </p>
             <div className="mt-4 space-y-2 max-h-[340px] overflow-y-auto pr-1">
-              {(frame?.vehicles || []).slice(0, 16).map((v, i) => {
-                const blocking = v.lane_id === 1 && v.movement_conflict
+              {(frame?.vehicles || []).slice(0, 16).map((v: any, i: number) => {
+                const vCls = String(v.class || v.type || 'car')
+                const vLane = v.lane_id || v.lane || 1
+                const blocking = vLane === 1 && (v.movement_conflict || (frame?.signal_state === 'GREEN' && v.direction === 'straight'))
                 return (
                   <div key={i} className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 ring-1',
                     blocking ? 'bg-accent-redSoft ring-accent-red/15' : 'bg-ink-50 ring-ink-100'
                   )}>
                     <div className="h-8 w-10 rounded-md shrink-0 grid place-items-center text-white text-[10px] font-bold"
-                      style={{ background: COLORS[v.class] || '#334155' }}>
-                      {v.class.slice(0, 3).toUpperCase()}
+                      style={{ background: COLORS[vCls] || '#334155' }}>
+                      {vCls.slice(0, 3).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-sm">
-                        <span className="font-bold text-ink-900 capitalize">{v.class}</span>
+                        <span className="font-bold text-ink-900 capitalize">{vCls}</span>
                         <span className="text-[10px] font-mono text-ink-500">{v.track_id}</span>
                         <span className="ml-auto text-[10px] font-bold text-ink-500">
-                          Lane {v.lane_id}
+                          Lane {vLane}
                         </span>
                       </div>
                       <div className="mt-0.5 flex items-center gap-2 text-[11px]">
@@ -310,9 +306,9 @@ export default function LiveMonitoringPage() {
                           'font-semibold capitalize',
                           blocking ? 'text-accent-red' : 'text-ink-600'
                         )}>
-                          Direction: {v.direction}{blocking && ' (conflict)'}
+                          Direction: {v.direction || 'straight'}{blocking && ' (conflict)'}
                         </span>
-                        <span className="text-ink-400">· conf {Math.round((v.confidence || 0) * 100)}%</span>
+                        <span className="text-ink-400">· conf {Math.round((v.confidence || 0.9) * 100)}%</span>
                       </div>
                     </div>
                   </div>
@@ -367,10 +363,10 @@ function JunctionStage({ frame }: { frame: SimFrame | null }) {
 
       {/* Lane labels + occupancy overlay for Lane 1 */}
       {[
-        { x: (LX1+LX2)/2, label: 'L1 · LEFT', w: frame?.lanes[0]?.occupancy ?? 0, tone: frame?.blockage_lane === 1 ? 'blocked' : 'ok' },
-        { x: (LX2+LX3)/2, label: 'L2 · STRAIGHT', w: frame?.lanes[1]?.occupancy ?? 0, tone: 'ok' },
-        { x: (LX3+LX4)/2, label: 'L3 · STRAIGHT', w: frame?.lanes[2]?.occupancy ?? 0, tone: 'ok' },
-        { x: (LX4+LX5)/2, label: 'L4 · RIGHT', w: frame?.lanes[3]?.occupancy ?? 0, tone: 'ok' },
+        { x: (LX1+LX2)/2, label: 'L1 · LEFT', w: frame?.lanes?.[0]?.occupancy ?? 0, tone: frame?.blockage_lane === 1 ? 'blocked' : 'ok' },
+        { x: (LX2+LX3)/2, label: 'L2 · STRAIGHT', w: frame?.lanes?.[1]?.occupancy ?? 0, tone: 'ok' },
+        { x: (LX3+LX4)/2, label: 'L3 · STRAIGHT', w: frame?.lanes?.[2]?.occupancy ?? 0, tone: 'ok' },
+        { x: (LX4+LX5)/2, label: 'L4 · RIGHT', w: frame?.lanes?.[3]?.occupancy ?? 0, tone: 'ok' },
       ].map((l) => (
         <div key={l.label} className="absolute -translate-x-1/2" style={{
           left: `${(l.x / stageW) * 100}%`,
@@ -386,23 +382,49 @@ function JunctionStage({ frame }: { frame: SimFrame | null }) {
         </div>
       ))}
 
-      {/* Signal heads */}
-      {[
-        { x: LX1 - 30, y: 210, lit: frame?.signal_state },
-        { x: LX5 + 6,  y: 210, lit: frame?.signal_state },
-        { x: LX1 - 30, y: 340, lit: frame?.signal_state },
-      ].map((s, i) => (
-        <div key={i} className="signal-box -translate-x-1/2" style={{
-          left: `${(s.x/stageW)*100}%`,
-          top: `${(s.y/stageH)*100}%`
-        }}>
-          {['#EF4444', '#FACC15', '#22C55E'].map((c, j) => {
-            const idx = ['RED', 'YELLOW', 'GREEN'].indexOf(s.lit || '')
-            const on = idx === j
-            return <div key={j} className="signal-dot" style={{ background: c, opacity: on ? 1 : 0.18, boxShadow: on ? `0 0 10px ${c}` : undefined }} />
-          })}
+      {/* Single 4-Aspect Traffic Signal Post (Matching user's traffic signal) */}
+      <div 
+        className="absolute -translate-x-1/2 z-20 flex flex-col items-center bg-black/90 p-2 rounded-xl ring-2 ring-yellow-500/80 shadow-[0_0_20px_rgba(0,0,0,0.9)] border border-yellow-600/70 select-none"
+        style={{
+          left: `${((LX1 - 35) / stageW) * 100}%`,
+          top: '22%',
+        }}
+      >
+        {/* 1. Main Straight RED Light (GLOWING RED) */}
+        <div 
+          className="w-7 h-7 rounded-full flex items-center justify-center relative bg-red-600"
+          style={{
+            boxShadow: '0 0 14px #EF4444, 0 0 25px #EF4444a0, inset 0 0 6px #FCA5A5',
+            border: '1px solid #F87171'
+          }}
+        >
+          <span className="text-[7px] font-black text-white tracking-wider">RED</span>
         </div>
-      ))}
+
+        {/* 2. Yellow Light (OFF) */}
+        <div className="w-7 h-7 rounded-full bg-slate-900/90 border border-slate-800 my-1 opacity-25" />
+
+        {/* 3. Straight Green Light (OFF) */}
+        <div className="w-7 h-7 rounded-full bg-slate-900/90 border border-slate-800 mb-1 opacity-25 flex items-center justify-center">
+          <span className="text-white/40 text-[9px]">↑</span>
+        </div>
+
+        {/* 4. ALWAYS GREEN LEFT TURN ARROW (Matching User Photo) */}
+        <div 
+          className="w-7 h-7 rounded-full flex items-center justify-center relative bg-emerald-600"
+          style={{
+            boxShadow: '0 0 16px #10B981, 0 0 28px #10B981a0, inset 0 0 6px #A7F3D0',
+            border: '1.5px solid #34D399'
+          }}
+        >
+          <svg viewBox="0 0 24 24" className="w-4 h-4 text-white fill-current drop-shadow-[0_0_6px_#10B981]">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </div>
+        <span className="text-[7px] font-extrabold text-emerald-400 uppercase tracking-tighter mt-1 text-center leading-none">
+          FREE LEFT
+        </span>
+      </div>
 
       {/* Blocked lane highlight */}
       {frame?.blockage_detected && (
@@ -419,15 +441,17 @@ function JunctionStage({ frame }: { frame: SimFrame | null }) {
       )}
 
       {/* Vehicles */}
-      {(frame?.vehicles || []).map((v, i) => {
-        const blocking = v.lane_id === 1 && v.movement_conflict
+      {(frame?.vehicles || []).map((v: any, i: number) => {
+        const vCls = String(v.class || v.type || 'car')
+        const vLane = v.lane_id || v.lane || 1
+        const blocking = vLane === 1 && (v.movement_conflict || (frame?.signal_state === 'GREEN' && v.direction === 'straight'))
         const laneWidth = LX2 - LX1
         // Assign lane center, with slight stagger per index
-        const laneX = v.lane_id ? [LX1, LX2, LX3, LX4][v.lane_id - 1] + laneWidth / 2 : LX3
+        const laneX = [LX1, LX2, LX3, LX4][(vLane - 1) % 4] + laneWidth / 2
         const stagger = (i % 5) * 44
-        const vw = v.class === 'truck' || v.class === 'bus' ? 50 : v.class === 'bike' ? 26 : 38
-        const vh = v.class === 'truck' || v.class === 'bus' ? 30 : v.class === 'bike' ? 44 : 54
-        const topY = 330 + (stagger % 180) - (v.class === 'bike' ? 8 : 0)
+        const vw = vCls === 'truck' || vCls === 'bus' ? 50 : vCls === 'bike' ? 26 : 38
+        const vh = vCls === 'truck' || vCls === 'bus' ? 30 : vCls === 'bike' ? 44 : 54
+        const topY = 330 + (stagger % 180) - (vCls === 'bike' ? 8 : 0)
         const left = laneX - vw / 2
         return (
           <div key={i} className="vehicle" style={{
@@ -435,7 +459,7 @@ function JunctionStage({ frame }: { frame: SimFrame | null }) {
             top: `${(topY / stageH) * 100}%`,
             width: `${(vw / stageW) * 100}%`,
             height: `${(vh / stageH) * 100}%`,
-            background: COLORS[v.class] || '#334155',
+            background: COLORS[vCls] || '#334155',
             border: blocking ? '2px solid #F97316' : undefined,
             zIndex: blocking ? 10 : 1,
           }}>
@@ -462,17 +486,17 @@ function JunctionStage({ frame }: { frame: SimFrame | null }) {
 
 function localSim(junctionId: number, tick: number): SimFrame {
   const t = tick % 60
-  const sig: 'RED' | 'GREEN' = t < 30 ? 'RED' : 'GREEN'
-  const time_in = t < 30 ? t : t - 30
-  const n = Math.min(22, 6 + t)
-  const occ1 = sig === 'RED' ? Math.min(40, 10 + t * 1.2) : Math.min(88, 50 + time_in * 1.8)
-  const blocked = sig === 'GREEN' && occ1 > 60 && time_in > 10 && n > 10
-  const dur = blocked ? time_in - 5 : 0
+  const sig: 'RED' | 'GREEN' = 'RED' // Main signal for straight traffic is ALWAYS RED
+  const time_in = t
+  const n = Math.min(22, 8 + Math.floor(t / 2))
+  const occ1 = Math.min(92, 35 + t * 1.1)
+  const blocked = t > 10 && occ1 > 50
+  const dur = blocked ? t - 10 : 0
   const lanes = [
     { id: 1, lane_number: 1, type: 'left_turn', allowed: 'left', occupancy: occ1, vehicles: Math.max(1, Math.floor(n * 0.35)) },
-    { id: 2, lane_number: 2, type: 'straight', allowed: 'straight', occupancy: sig === 'GREEN' ? 88 : 40, vehicles: Math.max(1, Math.floor(n * 0.35)) },
-    { id: 3, lane_number: 3, type: 'straight', allowed: 'straight', occupancy: sig === 'GREEN' ? 72 : 32, vehicles: Math.floor(n * 0.22) },
-    { id: 4, lane_number: 4, type: 'right_turn', allowed: 'right', occupancy: sig === 'GREEN' ? 36 : 16, vehicles: Math.floor(n * 0.12) },
+    { id: 2, lane_number: 2, type: 'straight', allowed: 'straight', occupancy: Math.min(88, 40 + t * 0.8), vehicles: Math.max(1, Math.floor(n * 0.35)) },
+    { id: 3, lane_number: 3, type: 'straight', allowed: 'straight', occupancy: Math.min(75, 30 + t * 0.7), vehicles: Math.floor(n * 0.22) },
+    { id: 4, lane_number: 4, type: 'right_turn', allowed: 'right', occupancy: Math.min(45, 15 + t * 0.5), vehicles: Math.floor(n * 0.12) },
   ]
   const types = ['car', 'bike', 'auto', 'car', 'car', 'truck', 'bus', 'van']
   const vehicles: SimFrame['vehicles'] = []
@@ -485,15 +509,15 @@ function localSim(junctionId: number, tick: number): SimFrame {
       track_id: `TRK-${1000 + (junctionId * 131 + tick * 17 + i) % 8999}`,
       confidence: 0.82 + (i % 17) / 100,
       lane_id,
-      direction: lane_id === 1 && sig === 'GREEN' ? 'straight' : (lane_id === 2 || lane_id === 3 ? 'straight' : lane_id === 4 ? 'right' : 'left'),
-      movement_conflict: lane_id === 1 && sig === 'GREEN' && Math.random() < 0.75,
+      direction: lane_id === 1 && i === 0 ? 'straight' : (lane_id === 2 || lane_id === 3 ? 'straight' : lane_id === 4 ? 'right' : 'left'),
+      movement_conflict: lane_id === 1 && i === 0,
     })
   }
   return {
-    junction_id: junctionId, tick: t, signal_state: sig, time_in_state: time_in,
-    blockage_detected: dur >= 10, blockage_duration: Math.max(0, dur), blockage_lane: 1,
-    severity: blocked ? (dur >= 20 ? 'HIGH' : 'MEDIUM') : (occ1 > 60 && sig === 'GREEN' ? 'MEDIUM' : 'LOW'),
-    warning: blocked ? 'LEFT-TURN LANE BLOCKED' : (occ1 > 60 && sig === 'GREEN' ? 'LEFT-TURN LANE AT RISK' : null),
+    junction_id: junctionId, tick: t, signal_state: 'RED', time_in_state: time_in,
+    blockage_detected: blocked, blockage_duration: dur, blockage_lane: 1,
+    severity: blocked ? (dur >= 20 ? 'HIGH' : 'MEDIUM') : 'LOW',
+    warning: blocked ? 'LEFT-TURN LANE BLOCKED · Straight car stopped at RED light in FREE LEFT lane' : 'MONITORING FREE LEFT TURN',
     total_vehicles: n, lanes, vehicles, is_mock: true, demo_mode: true,
   }
 }

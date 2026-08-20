@@ -17,6 +17,7 @@ import InterventionsPage from './pages/authority/InterventionsPage'
 import AuditLogPage from './pages/authority/AuditLogPage'
 import AuthoritySettingsPage from './pages/authority/AuthoritySettingsPage'
 import CongestionCausePage from './pages/authority/CongestionCausePage'
+import VideoDetectionPage from './pages/authority/VideoDetectionPage'
 
 import ReportIssuePage from './pages/citizen/ReportIssuePage'
 import MyReportsPage from './pages/citizen/MyReportsPage'
@@ -70,6 +71,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['authority', 'admin']}>
               <LiveMonitoringPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/detect"
+          element={
+            <ProtectedRoute allowedRoles={['authority', 'admin']}>
+              <VideoDetectionPage />
             </ProtectedRoute>
           }
         />

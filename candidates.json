@@ -1,0 +1,162 @@
+[
+  {
+    "candidate_id": "cand_12_317",
+    "track_id": 12,
+    "camera_id": "cam_01",
+    "timestamp_sec": 10.56,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_12_317.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_5_332",
+    "track_id": 5,
+    "camera_id": "cam_01",
+    "timestamp_sec": 11.06,
+    "dwell_seconds": 3.37,
+    "snapshot": "snapshots/candidate_5_332.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_18_380",
+    "track_id": 18,
+    "camera_id": "cam_01",
+    "timestamp_sec": 12.66,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_18_380.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_21_397",
+    "track_id": 21,
+    "camera_id": "cam_01",
+    "timestamp_sec": 13.23,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_21_397.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_27_494",
+    "track_id": 27,
+    "camera_id": "cam_01",
+    "timestamp_sec": 16.46,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_27_494.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_29_615",
+    "track_id": 29,
+    "camera_id": "cam_01",
+    "timestamp_sec": 20.49,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_29_615.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_36_979",
+    "track_id": 36,
+    "camera_id": "cam_01",
+    "timestamp_sec": 32.62,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_36_979.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_37_1052",
+    "track_id": 37,
+    "camera_id": "cam_01",
+    "timestamp_sec": 35.05,
+    "dwell_seconds": 3.43,
+    "snapshot": "snapshots/candidate_37_1052.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_42_1060",
+    "track_id": 42,
+    "camera_id": "cam_01",
+    "timestamp_sec": 35.32,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_42_1060.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_43_1074",
+    "track_id": 43,
+    "camera_id": "cam_01",
+    "timestamp_sec": 35.79,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_43_1074.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_45_1362",
+    "track_id": 45,
+    "camera_id": "cam_01",
+    "timestamp_sec": 45.38,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_45_1362.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_46_1685",
+    "track_id": 46,
+    "camera_id": "cam_01",
+    "timestamp_sec": 56.14,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_46_1685.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_47_1962",
+    "track_id": 47,
+    "camera_id": "cam_01",
+    "timestamp_sec": 65.37,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_47_1962.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_48_2084",
+    "track_id": 48,
+    "camera_id": "cam_01",
+    "timestamp_sec": 69.44,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_48_2084.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_50_2134",
+    "track_id": 50,
+    "camera_id": "cam_01",
+    "timestamp_sec": 71.11,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_50_2134.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  },
+  {
+    "candidate_id": "cand_51_2398",
+    "track_id": 51,
+    "camera_id": "cam_01",
+    "timestamp_sec": 79.9,
+    "dwell_seconds": 3.03,
+    "snapshot": "snapshots/candidate_51_2398.jpg",
+    "reason": "dwell_time_exceeded",
+    "review_status": "pending"
+  }
+]

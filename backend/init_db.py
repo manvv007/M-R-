@@ -8,11 +8,11 @@ from app.seed_data import seed_demo_data
 
 
 if __name__ == "__main__":
-    print("🛠️  Initializing RoadWatch database...")
+    print("[+] Initializing RoadWatch database...")
     init_db_schema()
     db = SessionLocal()
     try:
         seed_demo_data(db)
-        print("✅ Database initialization complete.")
+        print("[+] Database initialization complete.")
     finally:
         db.close()

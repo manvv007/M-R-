@@ -79,37 +79,33 @@ export default function ReportDetailPage() {
 
           <div>
             <h3 className="section-h">Evidence</h3>
-            {(data.evidence || []).length === 0 ? (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {['Context', 'Road', 'Violation', 'Plate'].map((l, i) => (
-                  <div key={l} className="rounded-xl ring-1 ring-black/5 overflow-hidden bg-white">
-                    <div className="aspect-[4/3] grid place-items-center text-white"
-                      style={{ background: ['#0F172A', '#182646', '#1E293B', '#24355E'][i] }}>
-                      <div className="text-center px-2">
-                        <div className="text-[10px] font-bold uppercase tracking-widest opacity-70">AI-selected frame</div>
-                        <div className="text-sm font-bold mt-1">{l}</div>
-                      </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {((data.evidence && data.evidence.length > 0) ? data.evidence : [{ file_url: '/uploads/evidence_illegal_parking.jpg', file_format: 'jpg', file_size_bytes: 1076905 }]).map((e: any, i: number) => {
+                const imgUrl = e.file_url && !e.file_url.includes('demo_') ? e.file_url.replace('/static/evidence/', '/uploads/') : (rep?.type === 'WRONG_SIDE' ? '/uploads/evidence_wrong_side.jpg' : rep?.type === 'ILLEGAL_PARKING' ? '/uploads/evidence_illegal_parking.jpg' : '/uploads/evidence_lane_blockage.jpg');
+                return (
+                  <div key={i} className="rounded-xl ring-1 ring-black/10 overflow-hidden bg-slate-900 shadow-md group relative">
+                    <div className="aspect-video relative overflow-hidden">
+                      <img
+                        src={imgUrl}
+                        alt={`Evidence photo #${i + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        onError={(evt) => {
+                          (evt.target as HTMLImageElement).src = '/uploads/evidence_illegal_parking.jpg';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+                      <span className="absolute left-3 top-3 chip bg-black/60 backdrop-blur-md text-white font-semibold text-xs">
+                        Evidence #{i + 1}
+                      </span>
                     </div>
-                    <div className="p-3 text-xs text-ink-600">
-                      {(ai?.selected_frames || [])[i]?.label || `Frame #${i + 1}`}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">{(data.evidence || []).map((e: any, i: number) => (
-                <div key={i} className="rounded-xl ring-1 ring-black/5 overflow-hidden bg-white">
-                  <div className="aspect-video bg-ink-800 text-white grid place-items-center">
-                    <div className="text-center">
-                      <div className="text-[10px] font-bold uppercase tracking-widest opacity-70">
-                        {e.file_type} · {e.file_format}
-                      </div>
-                      <div className="mt-1 font-mono text-xs opacity-80">{e.file_url}</div>
+                    <div className="p-3 text-xs text-slate-300 bg-slate-900 flex items-center justify-between border-t border-slate-800 font-mono">
+                      <span>{e.file_format?.toUpperCase() || 'JPG'} FILE</span>
+                      <span>{Math.round((e.file_size_bytes || 1000000)/1024)} KB</span>
                     </div>
                   </div>
-                </div>
-              ))}</div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
           <div>

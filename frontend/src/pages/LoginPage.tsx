@@ -7,7 +7,6 @@ export default function LoginPage() {
   const { login } = useAuth()
   const nav = useNavigate()
   const loc = useLocation() as any
-  const redirectTo = loc.state?.from || '/dashboard'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState<string | null>(null)
@@ -18,8 +17,10 @@ export default function LoginPage() {
     setErr(null)
     setLoading(true)
     try {
-      await login(email, password)
-      nav(redirectTo, { replace: true })
+      const user = await login(email, password)
+      const defaultDest = user?.role === 'citizen' ? '/my-reports' : '/dashboard'
+      const destination = loc.state?.from || defaultDest
+      nav(destination, { replace: true })
     } catch (e: any) {
       const detail = e?.response?.data?.detail || 'Invalid credentials. Please try again.'
       setErr(typeof detail === 'string' ? detail : 'Unable to sign in.')

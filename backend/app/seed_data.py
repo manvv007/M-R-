@@ -332,13 +332,20 @@ def seed_demo_data(db: Session):
                 )
                 db.add(report)
 
-            # Fake evidence + AI analysis
+            # Real evidence + AI analysis
+            if d["type"] == "WRONG_SIDE":
+                evidence_url = "/uploads/evidence_wrong_side.jpg"
+            elif d["type"] == "ILLEGAL_PARKING":
+                evidence_url = "/uploads/evidence_illegal_parking.jpg"
+            else:
+                evidence_url = "/uploads/evidence_lane_blockage.jpg"
+
             evidence = models.Evidence(
                 incident_id=incident.id,
                 report_id=None,
-                file_type="image" if d["source"] == "CCTV" else "image",
+                file_type="image",
                 file_format="jpg",
-                file_url=f"/static/evidence/demo_{i+1:03d}.jpg",
+                file_url=evidence_url,
                 file_size_bytes=random.randint(800_000, 2_400_000),
                 width_px=1920, height_px=1080,
                 uploaded_by_id=d["user"].id if d["user"] else None,

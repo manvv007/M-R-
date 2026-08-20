@@ -188,6 +188,7 @@ function DashboardShell() {
   const links = [
     { id: 'overview',     to: '/dashboard',              label: 'Overview',       icon: 'home' },
     { id: 'live',         to: '/dashboard/live',         label: 'Live Monitoring',icon: 'live' },
+    { id: 'detect',       to: '/dashboard/detect',       label: 'AI Video Detection', icon: 'video' },
     { id: 'incidents',    to: '/dashboard/incidents',    label: 'Incidents',      icon: 'alert' },
     { id: 'reports',      to: '/dashboard/reports',      label: 'Citizen Reports',icon: 'users' },
     { id: 'hotspots',     to: '/dashboard/hotspots',     label: 'Hotspots',       icon: 'fire' },
@@ -207,6 +208,7 @@ function DashboardShell() {
     switch (name) {
       case 'home':   return <svg {...common}><path d="M3 11 12 4l9 7" /><path d="M5 10v10h14V10" /></svg>
       case 'live':   return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M5 12a7 7 0 0 1 14 0" /><path d="M2 12a10 10 0 0 1 20 0" /></svg>
+      case 'video':  return <svg {...common}><path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="2" y="6" rx="2" ry="2" /></svg>
       case 'alert':  return <svg {...common}><path d="M12 3 2 20h20z" /><path d="M12 10v5M12 18h.01" /></svg>
       case 'users':  return <svg {...common}><circle cx="9" cy="9" r="3" /><path d="M3 20c0-3 3-5 6-5s6 2 6 5" /><circle cx="17" cy="9" r="2.5" /><path d="M15 15c4 0 6 2 6 5" /></svg>
       case 'fire':   return <svg {...common}><path d="M12 3s5 6 5 10a5 5 0 0 1-10 0c0-2 1-3 1-3s-1 2 2 3c0-3 0-5 2-8z" /></svg>

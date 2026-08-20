@@ -11,6 +11,17 @@ export default function IncidentDetailPage() {
   const [data, setData] = useState<any>(null)
   const [confirm, setConfirm] = useState<{ title: string; message: string; action: () => void } | null>(null)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  const resolveImgUrl = (url?: string, incidentType?: string) => {
+    if (url && !url.includes('demo_')) {
+      if (url.startsWith('http')) return url;
+      return url.replace('/static/evidence/', '/uploads/').replace('/static/', '/uploads/');
+    }
+    if (incidentType === 'WRONG_SIDE') return '/uploads/evidence_wrong_side.jpg';
+    if (incidentType === 'ILLEGAL_PARKING') return '/uploads/evidence_illegal_parking.jpg';
+    return '/uploads/evidence_lane_blockage.jpg';
+  }
 
   useEffect(() => {
     api.get(`/api/incidents/${id}`)
@@ -142,25 +153,42 @@ export default function IncidentDetailPage() {
                   No evidence files linked.
                 </div>
               )}
-              {(data.evidence || []).map((e: any, i: number) => (
-                <div key={i} className="rounded-xl ring-1 ring-black/5 overflow-hidden">
-                  <div className="aspect-video bg-[repeating-linear-gradient(135deg,#0f172a_0_28px,#1e293b_28px_56px)] text-white grid place-items-center relative">
-                    <div className="text-center">
-                      <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">
-                        {e.file_type === 'video' ? 'VIDEO EVIDENCE' : 'IMAGE EVIDENCE'}
+              {(data.evidence || []).map((e: any, i: number) => {
+                const imgUrl = resolveImgUrl(e.file_url, inc.type);
+                return (
+                  <div key={i} className="rounded-xl ring-1 ring-black/10 overflow-hidden bg-slate-900 group relative">
+                    <div 
+                      className="aspect-video relative overflow-hidden cursor-pointer"
+                      onClick={() => setPreviewImage(imgUrl)}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Evidence #${i + 1} for case ${inc.case_number}`}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        onError={(evt) => {
+                          (evt.target as HTMLImageElement).src = '/uploads/evidence_lane_blockage.jpg';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 opacity-80 group-hover:opacity-100 transition-opacity" />
+                      <span className="absolute left-3 top-3 chip bg-black/60 backdrop-blur-md text-white ring-1 ring-white/20 font-semibold text-xs">
+                        Evidence #{i + 1}
+                      </span>
+                      <span className="absolute right-3 top-3 chip bg-emerald-500/90 backdrop-blur-md text-white font-mono text-[10px] uppercase font-bold tracking-wider">
+                        {e.file_format?.toUpperCase() || 'JPG'} · {Math.round((e.file_size_bytes || 1200000) / 1024)} KB
+                      </span>
+                      <div className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <span className="bg-black/60 text-white px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm flex items-center gap-1.5 shadow-lg">
+                          🔍 Click to enlarge
+                        </span>
                       </div>
-                      <div className="mt-1 text-sm font-mono opacity-90">{e.file_format.toUpperCase()} · {Math.round((e.file_size_bytes || 0)/1024)} KB</div>
                     </div>
-                    <span className="absolute left-3 top-3 chip bg-black/40 text-white ring-white/15">
-                      Evidence #{i + 1}
-                    </span>
+                    <div className="p-3 text-xs text-slate-300 bg-slate-900 flex items-center justify-between border-t border-slate-800">
+                      <span>Uploaded {formatDate(e.uploaded_at || inc.detected_at)}</span>
+                      <span className="font-mono text-slate-400">{(e.width_px || '1920')}×{(e.height_px || '1080')}</span>
+                    </div>
                   </div>
-                  <div className="p-3 text-xs text-ink-500 flex items-center justify-between">
-                    <span>Uploaded {formatDate(e.uploaded_at)}</span>
-                    <span className="font-mono">{(e.width_px || '-')}×{(e.height_px || '-')}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -168,23 +196,39 @@ export default function IncidentDetailPage() {
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="section-h">AI-selected evidence frames</h3>
-                <span className="chip bg-violet-50 text-violet-700 ring-1 ring-violet-200">
-                  DEMO AI · Mock selection
+                <span className="chip bg-violet-50 text-violet-700 ring-1 ring-violet-200 font-semibold">
+                  DEMO AI · Keyframe Extraction
                 </span>
               </div>
               <div className="mt-4 grid gap-3 grid-cols-2 md:grid-cols-4">
-                {ai.selected_frames.map((f: any, i: number) => (
-                  <div key={i} className="rounded-xl ring-1 ring-black/5 overflow-hidden bg-white">
-                    <div className="aspect-[4/3] grid place-items-center text-white text-xs"
-                      style={{ background: ['#0F172A', '#182646', '#1E293B', '#24355E'][i % 4] }}>
-                      <div className="text-center">
-                        <div className="font-mono font-bold opacity-80">Frame #{f.index || i}</div>
-                        <div className="mt-2 opacity-70">{f.label}</div>
+                {ai.selected_frames.map((f: any, i: number) => {
+                  const frameUrl = resolveImgUrl(f.url, inc.type);
+                  return (
+                    <div 
+                      key={i} 
+                      className="rounded-xl ring-1 ring-black/10 overflow-hidden bg-slate-900 group relative cursor-pointer"
+                      onClick={() => setPreviewImage(frameUrl)}
+                    >
+                      <div className="aspect-[4/3] relative overflow-hidden">
+                        <img
+                          src={frameUrl}
+                          alt={f.label || `Frame #${i}`}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(evt) => {
+                            (evt.target as HTMLImageElement).src = '/uploads/evidence_lane_blockage.jpg';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-80" />
+                        <span className="absolute left-2 top-2 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-black/70 text-amber-400 backdrop-blur-sm ring-1 ring-amber-400/30">
+                          Frame #{f.index ?? i}
+                        </span>
+                      </div>
+                      <div className="p-2.5 text-[11px] font-medium text-slate-200 bg-slate-900 border-t border-slate-800 truncate">
+                        {f.label || f.note || `Frame #${i + 1}`}
                       </div>
                     </div>
-                    <div className="p-2.5 text-[11px] text-ink-600">{f.note || f.label}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -320,6 +364,39 @@ export default function IncidentDetailPage() {
         tone="danger"
         onConfirm={() => confirm?.action()}
       />
+
+      {/* Lightbox Image Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl ring-1 ring-white/20 shadow-2xl bg-slate-950 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800 bg-slate-900/90 text-white">
+              <span className="text-sm font-bold flex items-center gap-2">
+                📷 Evidence Inspection · Case #{inc.case_number}
+              </span>
+              <button 
+                className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 text-lg leading-none transition-colors"
+                onClick={() => setPreviewImage(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-2 bg-slate-950 overflow-auto grid place-items-center">
+              <img 
+                src={previewImage} 
+                alt="Evidence Full Screen Preview" 
+                className="max-h-[75vh] w-auto object-contain rounded-lg shadow-lg"
+              />
+            </div>
+            <div className="px-5 py-3 border-t border-slate-800 bg-slate-900/90 text-xs text-slate-400 flex items-center justify-between">
+              <span>Location: {inc.junction_name || 'Sector 21 Market Junction'}</span>
+              <span>Source: {inc.source}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

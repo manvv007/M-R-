@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 
-    AI_SERVICE_URL: str = "http://localhost:8001"
+    AI_SERVICE_URL: str = "http://localhost:8081"
     USE_MOCK_AI: bool = True
     DEMO_MODE: bool = True
 
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     ALLOWED_VIDEO_TYPES: List[str] = ["mp4", "mov"]
     UPLOAD_DIR: str = "./uploads"
 
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:5180"]
 
     @property
     def DATABASE_URL(self) -> str:

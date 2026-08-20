@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -46,9 +46,32 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=schemas.Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
+async def login(request: Request, db: Session = Depends(get_db)):
+    content_type = request.headers.get("content-type", "").lower()
+    username = None
+    password = None
+
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            username = body.get("username") or body.get("email")
+            password = body.get("password")
+        except Exception:
+            pass
+
+    if not username or not password:
+        try:
+            form = await request.form()
+            username = form.get("username") or form.get("email")
+            password = form.get("password")
+        except Exception:
+            pass
+
+    if not username or not password:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email and password are required")
+
+    user = db.query(models.User).filter(models.User.email == str(username).strip()).first()
+    if not user or not verify_password(password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account disabled")
@@ -57,12 +80,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user.last_login_at = datetime.utcnow()
     db.commit()
 
-    token = create_access_token({"user_id": user.id, "role": role.name, "email": user.email})
+    token = create_access_token({"user_id": user.id, "role": role.name if role else "citizen", "email": user.email})
     return schemas.Token(
         access_token=token,
         user=schemas.UserOut(
             id=user.id, full_name=user.full_name, email=user.email,
-            phone=user.phone, role=role.name, is_active=user.is_active,
+            phone=user.phone, role=role.name if role else "citizen", is_active=user.is_active,
             created_at=user.created_at,
         ),
     )

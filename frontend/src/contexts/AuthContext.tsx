@@ -16,7 +16,7 @@ export interface User {
 interface AuthContextValue {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<User>
   register: (payload: { full_name: string; email: string; password: string; phone?: string; role?: string }) => Promise<void>
   logout: () => void
   refreshMe: () => Promise<void>
@@ -59,15 +59,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [token, refreshMe])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const fd = new FormData()
-    fd.append('username', email)
-    fd.append('password', password)
-    const { data } = await api.post('/api/auth/login', fd)
+  const login = useCallback(async (email: string, password: string): Promise<User> => {
+    const { data } = await api.post('/api/auth/login', {
+      username: email.trim(),
+      password,
+    })
     setToken(data.access_token)
     setUser(data.user)
     localStorage.setItem('rw_token', data.access_token)
     localStorage.setItem('rw_user', JSON.stringify(data.user))
+    return data.user
   }, [])
 
   const register = useCallback(async (payload: { full_name: string; email: string; password: string; phone?: string; role?: string }) => {
