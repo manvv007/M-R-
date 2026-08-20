@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Card, SectionHeader } from '../../components/ui/Cards'
 import { cn } from '../../utils/format'
 
@@ -21,8 +21,20 @@ export default function VideoDetectionPage() {
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  
+  // Timeline & Flow Direction State
+  const [currentTime, setCurrentTime] = useState<number>(0)
+  const [liveFps, setLiveFps] = useState<number>(0)
+  const [deliveredFrames, setDeliveredFrames] = useState<number>(0)
+  const [allowedDirection, setAllowedDirection] = useState<'down' | 'up' | 'left' | 'right'>('down')
+  const [videoObjectUrl, setVideoObjectUrl] = useState<string | null>(null)
+
   const imgRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  // Track delivered frames for timeline (avoids fake wall-clock timer)
+  const deliveredFramesRef = useRef<number>(0)
+  const fpsTimerRef = useRef<{ lastTs: number; framesSinceLastCheck: number }>({ lastTs: Date.now(), framesSinceLastCheck: 0 })
 
   const handleFile = useCallback((f: File) => {
     const validExts = ['.mp4', '.avi', '.mov', '.mkv', '.webm']
@@ -35,7 +47,11 @@ export default function VideoDetectionPage() {
     setError(null)
     setMeta(null)
     setStreaming(false)
-  }, [])
+    setCurrentTime(0)
+    setIsPlaying(false)
+    if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl)
+    setVideoObjectUrl(URL.createObjectURL(f))
+  }, [videoObjectUrl])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -67,6 +83,39 @@ export default function VideoDetectionPage() {
     }
   }
 
+  // Reset frame counter when streaming starts/stops
+  useEffect(() => {
+    if (streaming) {
+      deliveredFramesRef.current = 0
+      fpsTimerRef.current = { lastTs: Date.now(), framesSinceLastCheck: 0 }
+      setDeliveredFrames(0)
+      setCurrentTime(0)
+      setLiveFps(0)
+    }
+  }, [streaming])
+
+  // Called by img onLoad every time a new MJPEG frame arrives
+  const onFrameReceived = useCallback(() => {
+    if (!meta) return
+    deliveredFramesRef.current += 1
+    const frames = deliveredFramesRef.current
+    // Derive timestamp from actual frames received at original FPS
+    const t = Math.min(frames / meta.fps, meta.duration)
+    setCurrentTime(t)
+    setDeliveredFrames(frames)
+
+    // Measure live inference FPS every 30 delivered frames
+    const tracker = fpsTimerRef.current
+    tracker.framesSinceLastCheck += 1
+    if (tracker.framesSinceLastCheck >= 30) {
+      const now = Date.now()
+      const elapsed = (now - tracker.lastTs) / 1000
+      setLiveFps(Math.round(tracker.framesSinceLastCheck / elapsed))
+      tracker.lastTs = now
+      tracker.framesSinceLastCheck = 0
+    }
+  }, [meta])
+
   const startDetection = () => {
     if (!meta) return
     setStreaming(true)
@@ -74,9 +123,17 @@ export default function VideoDetectionPage() {
 
   const stopDetection = () => {
     setStreaming(false)
-    // Force the img to stop loading
     if (imgRef.current) {
       imgRef.current.src = ''
+    }
+  }
+
+  const togglePlayPause = () => {
+    if (!meta) return
+    if (!streaming) {
+      startDetection()
+    } else {
+      stopDetection()
     }
   }
 
@@ -85,15 +142,27 @@ export default function VideoDetectionPage() {
     setFile(null)
     setMeta(null)
     setError(null)
+    setCurrentTime(0)
+    if (videoObjectUrl) {
+      URL.revokeObjectURL(videoObjectUrl)
+      setVideoObjectUrl(null)
+    }
   }
 
-  const streamUrl = meta ? `${API}/api/detection/stream/${meta.session_id}` : ''
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60)
+    const s = Math.floor(secs % 60)
+    const ms = Math.floor((secs % 1) * 10)
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms}`
+  }
+
+  const streamUrl = meta ? `${API}/api/detection/stream/${meta.session_id}?direction=${allowedDirection}` : ''
 
   return (
     <>
       <SectionHeader
         title="AI Vehicle Detection"
-        subtitle="Upload real traffic footage and watch YOLOv8 detect vehicles in real-time with live bounding boxes"
+        subtitle="Upload real traffic footage and watch YOLOv8 detect vehicles and traffic violations with timeline tracking"
         kicker="REAL-TIME YOLOv8"
       />
 
@@ -149,6 +218,38 @@ export default function VideoDetectionPage() {
               </div>
             )}
 
+            {/* Allowed Traffic Flow Direction Selector */}
+            <div className="mt-4 pt-3 border-t border-ink-100">
+              <label className="text-xs font-bold text-ink-700 block mb-2">
+                Allowed Traffic Flow (Wrong-side Filter):
+              </label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { id: 'down', label: '⬇ Down' },
+                  { id: 'up', label: '⬆ Up' },
+                  { id: 'left', label: '⬅ Left' },
+                  { id: 'right', label: '➡ Right' },
+                ].map((dir) => (
+                  <button
+                    key={dir.id}
+                    type="button"
+                    onClick={() => setAllowedDirection(dir.id as any)}
+                    className={cn(
+                      'py-1.5 px-2 text-xs font-bold rounded-lg border transition-all text-center',
+                      allowedDirection === dir.id
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-1 ring-indigo-500'
+                        : 'bg-ink-50 border-ink-200 text-ink-600 hover:bg-ink-100'
+                    )}
+                  >
+                    {dir.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-ink-500 mt-1.5">
+                Vehicles moving opposite to this direction will get <span className="font-bold text-red-600">🔴 RED warning boxes</span>.
+              </p>
+            </div>
+
             {/* Action buttons */}
             <div className="mt-4 flex gap-2">
               {!meta ? (
@@ -174,14 +275,14 @@ export default function VideoDetectionPage() {
                   onClick={startDetection}
                   className="flex-1 rounded-lg px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200 transition-all"
                 >
-                  ▶ Start Detection
+                  ▶ Start Live Detection
                 </button>
               ) : (
                 <button
                   onClick={stopDetection}
                   className="flex-1 rounded-lg px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-lg shadow-red-200 transition-all"
                 >
-                  ⏹ Stop
+                  ⏹ Stop Stream
                 </button>
               )}
               {(file || meta) && (
@@ -200,15 +301,15 @@ export default function VideoDetectionPage() {
             <Card>
               <h3 className="text-sm font-bold text-ink-900 mb-3 flex items-center gap-2">
                 <span className="h-6 w-6 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 grid place-items-center text-white text-xs">ℹ</span>
-                Video Info
+                Video Details
               </h3>
               <div className="space-y-2.5">
                 {[
                   ['Filename', meta.filename],
                   ['Resolution', `${meta.width} × ${meta.height}`],
-                  ['FPS', `${meta.fps}`],
+                  ['Framerate', `${meta.fps} FPS`],
                   ['Total Frames', meta.total_frames.toLocaleString()],
-                  ['Duration', `${meta.duration}s`],
+                  ['Total Duration', `${meta.duration}s`],
                 ].map(([label, value]) => (
                   <div key={label as string} className="flex items-center justify-between text-sm">
                     <span className="text-ink-500 font-medium">{label}</span>
@@ -223,7 +324,7 @@ export default function VideoDetectionPage() {
           <Card>
             <h3 className="text-sm font-bold text-ink-900 mb-3 flex items-center gap-2">
               <span className="h-6 w-6 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 grid place-items-center text-white text-xs">🎯</span>
-              Detection Classes
+              Target Classes
             </h3>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -240,58 +341,57 @@ export default function VideoDetectionPage() {
               ))}
             </div>
             <p className="mt-3 text-[11px] text-ink-500 leading-relaxed">
-              Powered by <span className="font-bold text-indigo-600">YOLOv8 Nano</span> — real-time inference on uploaded footage. 
-              Bounding boxes with confidence scores are drawn on each frame.
+              Powered by <span className="font-bold text-indigo-600">YOLOv8 Nano</span> + ByteTrack vector trajectory analysis.
             </p>
           </Card>
         </div>
 
-        {/* Right — Video Stream */}
-        <div className="xl:col-span-8">
+        {/* Right — Video Stream & Timeline */}
+        <div className="xl:col-span-8 space-y-4">
           <Card padded={false} className="overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-ink-100">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  {streaming && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />}
+                  {streaming && <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />}
                   <span className="text-sm font-bold text-ink-900">
-                    {streaming ? 'YOLO Detection — LIVE' : 'Detection Preview'}
+                    {streaming ? 'YOLO Detection — LIVE' : 'Detection Viewport'}
                   </span>
                 </div>
                 {streaming && (
                   <span className="chip bg-red-50 text-red-600 ring-1 ring-red-200 text-[10px] font-bold">
-                    ● PROCESSING
+                    ● INFERENCE STREAMING
                   </span>
                 )}
               </div>
               {meta && (
-                <span className="text-xs font-mono text-ink-500">
-                  {meta.width}×{meta.height} @ {meta.fps}fps
+                <span className="text-xs font-mono font-semibold text-ink-600 bg-ink-50 px-2.5 py-1 rounded-md border border-ink-200">
+                  {meta.width}×{meta.height} • {meta.fps}fps
                 </span>
               )}
             </div>
 
-            <div className="relative bg-slate-950 flex items-center justify-center" style={{ minHeight: '480px' }}>
+            <div className="relative bg-slate-950 flex items-center justify-center overflow-hidden" style={{ minHeight: '480px' }}>
               {streaming ? (
                 <img
                   ref={imgRef}
                   src={streamUrl}
                   alt="YOLO Vehicle Detection Stream"
                   className="w-full h-auto"
-                  style={{ maxHeight: '600px', objectFit: 'contain' }}
+                  style={{ maxHeight: '580px', objectFit: 'contain' }}
+                  onLoad={onFrameReceived}
                 />
               ) : meta ? (
                 <div className="text-center py-20 px-8">
                   <div className="text-6xl mb-4 opacity-80">🎥</div>
-                  <p className="text-lg font-bold text-white/90">Video Ready for Detection</p>
+                  <p className="text-lg font-bold text-white/90">Video Loaded & Ready</p>
                   <p className="text-sm text-white/50 mt-2 max-w-md mx-auto">
-                    <span className="font-mono text-emerald-400">{meta.filename}</span> uploaded successfully.
-                    Click <span className="font-bold text-emerald-400">"Start Detection"</span> to begin YOLOv8 vehicle detection.
+                    <span className="font-mono text-emerald-400">{meta.filename}</span> ({meta.duration}s duration)
                   </p>
                   <button
                     onClick={startDetection}
                     className="mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-xl shadow-emerald-500/30 transition-all hover:scale-105"
                   >
-                    ▶ Start Detection
+                    ▶ Start AI Detection Stream
                   </button>
                 </div>
               ) : (
@@ -299,7 +399,7 @@ export default function VideoDetectionPage() {
                   <div className="text-6xl mb-4 opacity-40">🔍</div>
                   <p className="text-lg font-bold text-white/70">No Video Uploaded</p>
                   <p className="text-sm text-white/40 mt-2 max-w-sm mx-auto">
-                    Upload a traffic video clip to start real-time AI vehicle detection using YOLOv8.
+                    Upload a traffic clip to enable timeline scrubbing and real-time AI vehicle detection.
                   </p>
                 </div>
               )}
@@ -307,26 +407,100 @@ export default function VideoDetectionPage() {
               {/* Streaming Overlay */}
               {streaming && (
                 <>
-                  <span className="absolute left-3 top-3 chip bg-black/60 text-white ring-white/20 text-[10px] font-bold backdrop-blur-sm">
-                    YOLOv8n · Vehicle Detection
+                  <span className="absolute left-3 top-3 chip bg-black/70 text-white ring-white/20 text-[10px] font-bold backdrop-blur-md">
+                    YOLOv8n · Live Video Stream
                   </span>
-                  <span className="absolute right-3 top-3 chip bg-red-600/90 text-white ring-red-400/30 text-[10px] font-bold flex items-center gap-1.5 backdrop-blur-sm">
+                  <span className="absolute right-3 top-3 chip bg-red-600/90 text-white ring-red-400/30 text-[10px] font-bold flex items-center gap-1.5 backdrop-blur-md">
                     <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                    LIVE DETECTION
+                    LIVE INFERENCE
                   </span>
                 </>
               )}
             </div>
 
+            {/* TIMELINE CONTROL BAR */}
+            {meta && (
+              <div className="p-4 bg-slate-900 border-t border-slate-800 text-white">
+                {/* Time & frame display */}
+                <div className="flex items-center justify-between text-xs font-mono mb-2 text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold text-sm">{formatTime(currentTime)}</span>
+                    <span>/</span>
+                    <span>{formatTime(meta.duration)}</span>
+                    <span className="text-slate-500 ml-2">
+                      (Frame {deliveredFrames} / {meta.total_frames})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {streaming && liveFps > 0 && (
+                      <span className="flex items-center gap-1 text-yellow-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                        Inference: {liveFps} FPS
+                      </span>
+                    )}
+                    <span className="text-[11px] text-slate-400">Progress:</span>
+                    <span className="text-cyan-400 font-bold">
+                      {meta.total_frames > 0 ? Math.min(100, Math.round((deliveredFrames / meta.total_frames) * 100)) : 0}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress bar (read-only, synced to delivered frames) */}
+                <div className="relative w-full h-2 bg-slate-700 rounded-lg overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-lg transition-all duration-200"
+                    style={{ width: `${meta.total_frames > 0 ? Math.min(100, (deliveredFrames / meta.total_frames) * 100) : 0}%` }}
+                  />
+                </div>
+                <div className="mt-1 text-[10px] text-slate-600 text-center">
+                  Timeline syncs to actual inference speed — not wall-clock time
+                </div>
+
+                {/* Playback Controls */}
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={togglePlayPause}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                        streaming
+                          ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/40 hover:bg-red-500/30'
+                          : 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40 hover:bg-emerald-500/30'
+                      )}
+                    >
+                      {streaming ? '⏸ Stop Stream' : '▶ Start Stream'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={reset}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition"
+                    >
+                      ↻ Reset
+                    </button>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 text-right">
+                    Source FPS: <span className="text-slate-300 font-mono">{meta.fps}</span>
+                    {streaming && liveFps > 0 && (
+                      <> · Actual: <span className="text-yellow-400 font-mono">{liveFps}</span></>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Bottom Stats Bar */}
             {meta && (
-              <div className="grid grid-cols-4 divide-x divide-ink-100 border-t border-ink-100">
+              <div className="grid grid-cols-4 divide-x divide-ink-100 border-t border-ink-100 bg-white">
                 {[
                   ['MODEL', 'YOLOv8 Nano', '#6366F1'],
-                  ['CONFIDENCE', '≥ 40%', '#10B981'],
-                  ['STATUS', streaming ? 'DETECTING' : 'READY', streaming ? '#EF4444' : '#F59E0B'],
-                  ['CLASSES', '4 Vehicle Types', '#8B5CF6'],
+                  ['INFER FPS', streaming && liveFps > 0 ? `${liveFps} FPS` : `${meta.fps} (source)`, streaming && liveFps > 0 ? '#F59E0B' : '#10B981'],
+                  ['PROCESSED', `${deliveredFrames} / ${meta.total_frames}`, '#0EA5E9'],
+                  ['STATUS', streaming ? 'DETECTING' : 'PAUSED', streaming ? '#EF4444' : '#F59E0B'],
                 ].map(([k, v, c]) => (
+
                   <div key={k as string} className="px-4 py-3.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-500">{k}</div>
                     <div className="mt-0.5 text-sm font-extrabold tracking-tight" style={{ color: c as string }}>{v}</div>
@@ -340,3 +514,4 @@ export default function VideoDetectionPage() {
     </>
   )
 }
+
